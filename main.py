@@ -17,8 +17,8 @@ class Game:
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.screen.fill((255, 255, 255))
         self.blocks = [Block()]
-        self.score = 0
         self.factor = 1
+        self.lost = False
 
     def draw(self):
         self.screen.fill((255, 255, 255))
@@ -30,11 +30,15 @@ class Game:
         if not self.blocks[-1].y:
             self.scroll()
         if self.factor > 1:
-            if self.blocks[-1].x > self.blocks[-2].x + self.blocks[-1].width:
-                print('RIGHT')
-            elif self.blocks[-1].x + self.blocks[-1].width < self.blocks[-2].x:
-                print("LEFT")
-        self.blocks.append(Block(y=self.blocks[-1].y, velocity=2.5, factor=self.factor))
+            if (self.blocks[-1].x > self.blocks[-2].x + self.blocks[-1].width or
+                    self.blocks[-1].x + self.blocks[-1].width < self.blocks[-2].x ):
+                self.lost = True
+            if self.blocks[-1].x < self.blocks[-2].x:
+                self.blocks[-1].width = (self.blocks[-1].x + self.blocks[-1].width) - self.blocks[-2].x
+                self.blocks[-1].x = self.blocks[-2].x
+            elif self.blocks[-1].x + self.blocks[-1].width > self.blocks[-2].x + self.blocks[-1].width:
+                self.blocks[-1].width = (self.blocks[-2].x + self.blocks[-2].width) - self.blocks[-1].x
+        self.blocks.append(Block(y=self.blocks[-1].y, velocity=2, factor=self.factor, width=self.blocks[-1].width))
         self.factor += 0.1
 
     def update(self):
@@ -56,9 +60,9 @@ class Game:
 
 
 class Block:
-    def __init__(self, factor=1.0, velocity=0, y=HEIGHT):
-        self.height, self.width = BLOCK_SIZE, BLOCK_SIZE*3
-        self.x, self.y = (WIDTH-self.width)/2 if factor == 1 else random.randint(0, WIDTH - self.width), y - BLOCK_SIZE
+    def __init__(self, factor=1.0, velocity=0, y=HEIGHT, width=BLOCK_SIZE*3):
+        self.height, self.width = BLOCK_SIZE, width
+        self.x, self.y = (WIDTH-self.width)/2 if factor == 1 else random.randint(0, int(WIDTH - self.width)), y - BLOCK_SIZE
         self.velocity = velocity * factor
 
     def update(self):
@@ -71,19 +75,13 @@ class Block:
         if self.x + self.width > WIDTH or self.x < 0:
             self.velocity *= -1
 
-    def build(self):
-        pass
-
-    def cut(self):
-        pass
-
 
 def main():
     frames, stop = 0, False
     clock = pygame.time.Clock()
     game = Game()
     game.add()
-    while not stop:
+    while not (stop or game.lost):
         game.update()
         game.draw()
         for event in pygame.event.get():
